@@ -17,6 +17,12 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+public slots:
+    void save();
+
+private slots:
+    void updateRichText();
+
 private:
     Ui::MainWindow *ui;
 };
