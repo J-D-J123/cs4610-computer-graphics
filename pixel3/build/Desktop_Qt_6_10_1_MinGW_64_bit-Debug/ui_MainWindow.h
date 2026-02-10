@@ -10,9 +10,11 @@
 #define UI_MAINWINDOW_H
 
 #include <QtCore/QVariant>
+#include <QtGui/QAction>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QMainWindow>
+#include <QtWidgets/QMenu>
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QScrollArea>
 #include <QtWidgets/QStatusBar>
@@ -24,6 +26,9 @@ QT_BEGIN_NAMESPACE
 class Ui_MainWindow
 {
 public:
+    QAction *actionActual_Size;
+    QAction *actionZoom_In;
+    QAction *actionZoom_Out;
     QWidget *centralwidget;
     QHBoxLayout *horizontalLayout_2;
     QScrollArea *scrollArea;
@@ -31,6 +36,7 @@ public:
     QHBoxLayout *horizontalLayout;
     PixelWidget *pixelWidget;
     QMenuBar *menubar;
+    QMenu *menuView;
     QStatusBar *statusbar;
 
     void setupUi(QMainWindow *MainWindow)
@@ -38,6 +44,12 @@ public:
         if (MainWindow->objectName().isEmpty())
             MainWindow->setObjectName("MainWindow");
         MainWindow->resize(800, 600);
+        actionActual_Size = new QAction(MainWindow);
+        actionActual_Size->setObjectName("actionActual_Size");
+        actionZoom_In = new QAction(MainWindow);
+        actionZoom_In->setObjectName("actionZoom_In");
+        actionZoom_Out = new QAction(MainWindow);
+        actionZoom_Out->setObjectName("actionZoom_Out");
         centralwidget = new QWidget(MainWindow);
         centralwidget->setObjectName("centralwidget");
         horizontalLayout_2 = new QHBoxLayout(centralwidget);
@@ -63,10 +75,17 @@ public:
         menubar = new QMenuBar(MainWindow);
         menubar->setObjectName("menubar");
         menubar->setGeometry(QRect(0, 0, 800, 19));
+        menuView = new QMenu(menubar);
+        menuView->setObjectName("menuView");
         MainWindow->setMenuBar(menubar);
         statusbar = new QStatusBar(MainWindow);
         statusbar->setObjectName("statusbar");
         MainWindow->setStatusBar(statusbar);
+
+        menubar->addAction(menuView->menuAction());
+        menuView->addAction(actionActual_Size);
+        menuView->addAction(actionZoom_In);
+        menuView->addAction(actionZoom_Out);
 
         retranslateUi(MainWindow);
 
@@ -76,6 +95,10 @@ public:
     void retranslateUi(QMainWindow *MainWindow)
     {
         MainWindow->setWindowTitle(QCoreApplication::translate("MainWindow", "MainWindow", nullptr));
+        actionActual_Size->setText(QCoreApplication::translate("MainWindow", "Actual Size", nullptr));
+        actionZoom_In->setText(QCoreApplication::translate("MainWindow", "Zoom In", nullptr));
+        actionZoom_Out->setText(QCoreApplication::translate("MainWindow", "Zoom Out", nullptr));
+        menuView->setTitle(QCoreApplication::translate("MainWindow", "View", nullptr));
     } // retranslateUi
 
 };
