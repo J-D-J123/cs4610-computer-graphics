@@ -97,6 +97,10 @@ void MainWindow::drawMidpointLine(int x1, int y1, int x2, int y2, QColor color) 
         int stepX = (deltaX > 0) ? 1 : -1;
         int stepY = (deltaY > 0) ? 1 : -1;
 
+        // take abs so it does not go crazy negative values
+        deltaX    = abs(deltaX);
+        deltaY    = abs(deltaY);
+
         // step 3 slope error
         int slopeErr = deltaX - deltaY;
 
@@ -165,9 +169,14 @@ void MainWindow::drawTestCases() {
 
     // diagonals, x-major iteration & y
     drawMidpointLine(10, 10, 100, 100, Qt::green);
+    drawMidpointLine(-10, -10, -100, -100, Qt::blue);
 
     // left to right x1 < x2
+    drawMidpointLine(10, 20, 100, 20, Qt::yellow);
+
     // right to left x1 > x2
+    drawMidpointLine(100, 40, 10, 40, Qt::black);
+
     // top to bottom y1 < y2
     // bottom to top y1 > y2
 
