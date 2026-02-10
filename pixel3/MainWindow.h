@@ -23,6 +23,9 @@ public slots:
     void zoomOut();
 
 private:
+    void drawTestCases();
+    void drawMidpointLine(int xStart, int yStart, int maxX, int maxY, QColor);
+    int checkRange(int x1, int y1, int x2, int y2);
     Ui::MainWindow *ui;
 };
 
