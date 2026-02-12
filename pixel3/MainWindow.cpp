@@ -73,9 +73,20 @@ void MainWindow::zoomOut() {
 void MainWindow::drawMidpointLine(int x1, int y1, int x2, int y2, QColor color) {
 
     // if start point is outside the bounds just return
-    bool inRange = checkRange(x1, y1, x2, y2);
+    // bool inRange = checkRange(x1, y1, x2, y2);
 
-    if(inRange) {
+    int maxX = ui->pixelWidget->bufferSize().width()   - 1;
+    int maxY = ui->pixelWidget->bufferSize().height()  - 1;
+
+    // call the CohenSutherland algorithm and see if line is outside frame
+    bool accepts = !cohenSutherlandLineClip(x1, y1, x2, y2, maxX, maxY);
+
+    // if the points are outside the display clip them if not return
+    if (accepts) {
+        return;
+    }
+
+    // if(inRange) {
         // now draw the line started at f(x1, y1) to f(x2, y2)
         // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
         // function for writing a pixel inside the line is:
@@ -130,8 +141,11 @@ void MainWindow::drawMidpointLine(int x1, int y1, int x2, int y2, QColor color) 
 
             }
         }
-    }
-    qDebug() << "Error: Line Outside Bounds Unable to Draw";
+    // } else {
+
+        // qDebug() << "Error: Line Outside Bounds Unable to Draw"
+        //          << "(" << x1 << "," << y1 << ") to (" << x2 << "," << y2 << ")";
+    // }
 }
 
 /**
@@ -147,6 +161,9 @@ int MainWindow::checkRange(int x1, int y1, int x2, int y2) {
     int maxX = ui->pixelWidget->bufferSize().width()  - 1;
     int maxY = ui->pixelWidget->bufferSize().height() - 1;
 
+    // qDebug() << "Screen Size is:"
+    //          << "(" << maxX << "x" << maxY << ")";
+
     if  (x1 < 0 || x1 > maxX ||
             y1 < 0 || y1 > maxY ||
             x2 < 0 || x2 > maxX ||
@@ -156,29 +173,136 @@ int MainWindow::checkRange(int x1, int y1, int x2, int y2) {
     } else {return 1;}
 }
 
+
+/**
+ * @brief MainWindow::cohenSutherLandAlgo computes the bit code for a point (x, y)
+ * @return
+ * Resources:
+ * https://www.tutorialspoint.com/computer_graphics/computer_graphics_cohen_sutherland_line_clipping.htm
+ * https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
+ */
+int MainWindow::computeOutCode(int x, int y, int maxX, int maxY) {
+
+    // right left top bottom
+    // copied from Wikipedia
+    // const int INSIDE = 0b0000;
+    const int LEFT   = 0b0001;
+    const int RIGHT  = 0b0010;
+    const int BOTTOM = 0b0100;
+    const int TOP    = 0b1000;
+
+    int code = 0;
+
+    if (x < 0 ) {
+
+        code |= LEFT;
+
+    } else if (x > maxX) {
+
+        code |= RIGHT;
+    }
+
+    if (y < 0) {
+
+        code |= TOP;
+
+    } else if (y > maxY) {
+
+        code |= BOTTOM;
+    }
+
+    return code;
+}
+
+bool MainWindow::cohenSutherlandLineClip(int& x0, int& y0, int& x1, int& y1, int maxX, int maxY) {
+
+    // right left top bottom
+    // copied from Wikipedia
+    // const int INSIDE = 0b0000;
+    const int LEFT   = 0b0001;
+    const int RIGHT  = 0b0010;
+    const int BOTTOM = 0b0100;
+    const int TOP    = 0b1000;
+
+
+    // get the (x, y) cords
+    int outcodeStart = computeOutCode(x0, y0, maxX, maxY);
+    int outcodeEnd = computeOutCode(x1, y1, maxX, maxY);
+
+    bool accept = false;
+
+    while (true) {
+        if (!(outcodeStart | outcodeEnd)) {
+            // both are inside
+            accept = true;
+            break;
+        } else if (outcodeStart & outcodeEnd) {
+            // both are outside
+            break;
+        } else {
+            // failed both tests, so caculate point (x, y)
+            int x, y;
+            int outcodeOutput = outcodeEnd > outcodeStart ? outcodeEnd : outcodeStart;
+
+            // now find the intersection point
+            // use formula: slope = (y1 - y0) / (x1 - x0)
+            //  x = x0 + (1 / slope) * (ym - y0), where ym is ymin or ymax
+            //  y = y0 + slope * (xm - x0), where xm is xmin or xmax
+            if (outcodeOutput & TOP) {
+                // point is above clip window, y = 0 is top not bottom
+                x = x0 + (x1 - x0) * (0 - y0) / (y1 - y0);
+                y = 0;
+            } else if (outcodeOutput & BOTTOM) { // point is below the clip window
+                x = x0 + (x1 - x0) * (maxY - y0) / (y1 - y0);
+                y = maxY;
+            } else if (outcodeOutput & RIGHT) {  // point is to the right of clip window
+                y = y0 + (y1 - y0) * (maxX - x0) / (x1 - x0);
+                x = maxX;
+            } else if (outcodeOutput & LEFT) {   // point is to the left of clip window
+                y = y0 + (y1 - y0) * (0 - x0) / (x1 - x0);
+                x = 0;
+            }
+
+            // move outside point to intersection point to clip
+            if (outcodeOutput == outcodeStart) {
+                x0 = x;
+                y0 = y;
+                outcodeStart = computeOutCode(x0, y0, maxX, maxY);
+            } else {
+                x1 = x;
+                y1 = y;
+                outcodeEnd = computeOutCode(x1, y1, maxX, maxY);
+            }
+        }
+    }
+    return accept;
+}
+
 void MainWindow::drawTestCases() {
 
     // put data here to draw on the screen (the test cases)
     // vertical lines, horizontal lines
 
-    // horizontal line
-     drawMidpointLine(10, 10, 100, 10, Qt::red);
+    // // horizontal line
+    //  drawMidpointLine(10, 10, 100, 10, Qt::red);
 
-    // verticial line
-    drawMidpointLine(50, 10, 50, 100, Qt::blue);
+    // // verticial line
+    // drawMidpointLine(50, 10, 50, 100, Qt::blue);
 
-    // diagonals, x-major iteration & y
-    drawMidpointLine(10, 10, 100, 100, Qt::green);
-    drawMidpointLine(-10, -10, -100, -100, Qt::blue);
+    // // diagonals, x-major iteration & y
+    // drawMidpointLine(10, 10, 100, 100, Qt::green);
+    // drawMidpointLine(0, 0, 511, 511, Qt::blue);
 
-    // left to right x1 < x2
-    drawMidpointLine(10, 20, 100, 20, Qt::yellow);
+    // // left to right x1 < x2
+    // drawMidpointLine(10, 20, 100, 20, Qt::yellow);
 
-    // right to left x1 > x2
-    drawMidpointLine(100, 40, 10, 40, Qt::black);
+    // // right to left x1 > x2
+    // drawMidpointLine(100, 40, 10, 40, Qt::black);
 
     // top to bottom y1 < y2
-    // bottom to top y1 > y2
+    // drawMidpointLine(200, 10, 200, 100, Qt::cyan);
 
-    // use diff colors for each case
+    // bottom to top y1 > y2
+    // drawMidpointLine(250, 100, 250, 10, Qt::magenta);
 }
+

@@ -23,9 +23,16 @@ public slots:
     void zoomOut();
 
 private:
+
+    // required
     void drawTestCases();
     void drawMidpointLine(int xStart, int yStart, int maxX, int maxY, QColor);
-    int checkRange(int x1, int y1, int x2, int y2);
+
+    // extra helpers
+    int  checkRange(int x1, int y1, int x2, int y2);
+    bool cohenSutherlandLineClip(int& x0, int& y0, int& x1, int& y1, int maxX, int maxY);
+    int  computeOutCode(int x, int y, int maxX, int maxY);
+
     Ui::MainWindow *ui;
 };
 
