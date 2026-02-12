@@ -65,10 +65,10 @@ void MainWindow::zoomOut() {
 
 /**
  * @brief MainWindow::drawMidpointLine
- * @param x1
- * @param y1
- * @param x2
- * @param y2
+ * @param x1 start p(x1
+ * @param y1 satrt p   , y1)
+ * @param x2 start p(x2
+ * @param y2 start p   , y2
  */
 void MainWindow::drawMidpointLine(int x1, int y1, int x2, int y2, QColor color) {
 
@@ -150,10 +150,10 @@ void MainWindow::drawMidpointLine(int x1, int y1, int x2, int y2, QColor color) 
 
 /**
  * @brief checkRange returns 0 if range is inside the window else it returns 1
- * @param x1
- * @param y1
- * @param x2
- * @param y2
+ * @param x1 start p(x1
+ * @param y1 satrt p   , y1)
+ * @param x2 start p(x2
+ * @param y2 start p   , y2
  * @return
  */
 int MainWindow::checkRange(int x1, int y1, int x2, int y2) {
@@ -176,7 +176,7 @@ int MainWindow::checkRange(int x1, int y1, int x2, int y2) {
 
 /**
  * @brief MainWindow::cohenSutherLandAlgo computes the bit code for a point (x, y)
- * @return
+ * @return the int of the region where the point is in
  * Resources:
  * https://www.tutorialspoint.com/computer_graphics/computer_graphics_cohen_sutherland_line_clipping.htm
  * https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
