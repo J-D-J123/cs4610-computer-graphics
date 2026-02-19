@@ -1,0 +1,12 @@
+# Build folders
+build/
+*/build/
+
+# Qt Creator
+*.pro.user
+.qtcreator/
+
+# Compiled files
+*.obj
+*.o
+*.exe
