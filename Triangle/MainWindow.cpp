@@ -1,6 +1,8 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 
+#include <QThread>
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -13,28 +15,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     // clear the pixels
     ui->pixelWidget->clear();
-
-    // loop through the entire pixels
-    // for (int x = 0; x < ui->pixelWidget->bufferSize().width(); ++x) {
-
-    //     // Gray Center
-    //     ui->pixelWidget->writePixel(x, x, palette().windowText().color());
-
-    //     // Draw adjacent diagonal in red
-    //     ui->pixelWidget->writePixel(x + 1, x, Qt::red);
-
-    //     // draw adjacent diagonal in green
-    //     ui->pixelWidget->writePixel(x, x + 1, QColor(0,255,0));
-    // }
-
-    // Now implemen Bresenham's Line Drawing Algorithm
-    // https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
-    // Integer-only
-
-    // function for writing a pixel inside the line is:
-    // PixelWidget::writePixel(int x, int y, const QColor& c)
-
-    // Cases ... if f(x, y) > 0 then positve, if f(x, y) < 0 then negative.
 
     drawTestCases();
 
@@ -278,31 +258,124 @@ bool MainWindow::cohenSutherlandLineClip(int& x0, int& y0, int& x1, int& y1, int
     return accept;
 }
 
+/**
+ * @brief MainWindow::drawTriangleLines
+ * @param triangle
+ * @param color
+ */
+void MainWindow::drawTriangleLines(const Triangle &triangle, const QColor& color) {
+
+    // now make loop to test lots of cases (replace this with a loop)
+    drawMidpointLine(triangle.v1.x(), triangle.v1.y(),
+                     triangle.v2.x(), triangle.v2.y(), color);
+
+    drawMidpointLine(triangle.v2.x(), triangle.v2.y(),
+                     triangle.v3.x(), triangle.v3.y(), color);
+
+    drawMidpointLine(triangle.v1.x(), triangle.v1.y(),
+                     triangle.v3.x(), triangle.v3.y(), color);
+
+}
+
+/**
+ * @brief MainWindow::floodFill fills the triangle recursively with a color
+ * @param x the x cord of where the point p starts
+ * @param y the y cord of where the point p starts
+ * @param fill is the color of the fill
+ */
+void MainWindow::floodFill(int x, int y, const QColor& fill)
+{
+    int maxX = ui->pixelWidget->bufferSize().width()  - 1;
+    int maxY = ui->pixelWidget->bufferSize().height() - 1;
+
+    // step 1: if node is not Inside, return
+    // "Inside" means: in bounds AND not already filled AND not a border pixel
+    if (x < 0 || x > maxX || y < 0 || y > maxY) {
+        return;
+    }
+
+    QColor current = ui->pixelWidget->readPixel(x, y);
+
+    // not inside if already fill color
+    if (current != QColor(0, 0, 0, 0)) {
+        return;
+    }
+
+    // step 2: set the node
+    ui->pixelWidget->writePixel(x, y, fill);
+
+    // steps 3-6: recurse in 4 directions
+    floodFill(x,     y + 1, fill); // south
+    floodFill(x,     y - 1, fill); // north
+    floodFill(x - 1, y,     fill); // west
+    floodFill(x + 1, y,     fill); // east
+}
+
+/**
+ * drawTestCases() tests mutliple test cases on where to draw triangles
+ * @brief MainWindow::drawTestCases
+ */
 void MainWindow::drawTestCases() {
 
-    // put data here to draw on the screen (the test cases)
-    // vertical lines, horizontal lines
+    Triangle triangle1{{100, 100},
+                       {500, 200},
+                       {300, 400},
+                       Qt::red,
+                       Qt::green,
+                       Qt::blue};
 
-    // // horizontal line
-    //  drawMidpointLine(10, 10, 100, 10, Qt::red);
+    // THIS FINALLY WORKS!
+    drawTriangleLines(triangle1, Qt::red);
 
-    // // verticial line
-    // drawMidpointLine(50, 10, 50, 100, Qt::blue);
+    qDebug() << ui->pixelWidget->readPixel(300, 250);
 
-    // // diagonals, x-major iteration & y
-    // drawMidpointLine(10, 10, 100, 100, Qt::green);
-    // drawMidpointLine(0, 0, 511, 511, Qt::blue);
+    // make the stack so my computer does not crash
+    QThread* thread = QThread::create([this](){
+        floodFill(300, 250, Qt::blue);
+    });
+    thread->setStackSize(64 * 1024 * 1024); // 64MB stack
+    thread->start();
+    thread->wait();
+    delete thread;
 
-    // // left to right x1 < x2
-    // drawMidpointLine(10, 20, 100, 20, Qt::yellow);
 
-    // // right to left x1 > x2
-    // drawMidpointLine(100, 40, 10, 40, Qt::black);
 
-    // top to bottom y1 < y2
-    // drawMidpointLine(200, 10, 200, 100, Qt::cyan);
 
-    // bottom to top y1 > y2
-    // drawMidpointLine(250, 100, 250, 10, Qt::magenta);
+    // faaaaahhhhhhhh
+    // int maxX = ui->pixelWidget->bufferSize().width()  - 1;
+    // int maxY = ui->pixelWidget->bufferSize().height() - 1;
+
+    // // reset per run
+    // srand(time(0));
+
+    // // make 200 random generated triangles
+    // for(int i = 0; i < 200; i++) {
+
+    //     // choose random x, y chords for vertex 1, 2 and 3
+    //     int x1 = rand() % maxX;
+    //     int x2 = rand() % maxX;
+    //     int x3 = rand() % maxX;
+
+    //     int y1 = rand() % maxY;
+    //     int y2 = rand() % maxY;
+    //     int y3 = rand() % maxY;
+
+    //     Triangle triangle1{{(qreal) x1, (qreal)y1},  // vertex 1
+    //                        {(qreal) x2, (qreal) y2},  // vertex 2
+    //                        {(qreal) x3, (qreal) y3},  // vertex 3
+    //                        Qt::red,     // color 1
+    //                        Qt::green,   // color 2
+    //                        Qt::blue};   // color 3
+
+
+
+    //     // drawMidpointLine(triangle1.v1.x(), triangle1.v1.y(),
+    //     //                  triangle1.v2.x(), triangle1.v2.y(), triangle1.c1);
+
+    //     // drawMidpointLine(triangle1.v2.x(), triangle1.v2.y(),
+    //     //                  triangle1.v3.x(), triangle1.v3.y(), triangle1.c2);
+
+    //     // drawMidpointLine(triangle1.v1.x(), triangle1.v1.y(),
+    //     //                  triangle1.v3.x(), triangle1.v3.y(), triangle1.c3);
 }
 

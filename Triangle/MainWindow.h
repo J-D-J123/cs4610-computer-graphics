@@ -9,6 +9,18 @@ class MainWindow;
 }
 QT_END_NAMESPACE
 
+// struct for triangle points and colors needed for rendering
+struct Triangle
+{
+    QPointF v1;
+    QPointF v2;
+    QPointF v3;
+
+    QColor c1;
+    QColor c2;
+    QColor c3;
+};
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -25,10 +37,12 @@ public slots:
 private:
 
     // required
+    void floodFill(int x, int y, const QColor& fill);
+    void drawTriangleLines(const Triangle &triangle, const QColor& color);
+
+    // from midpoint line
     void drawTestCases();
     void drawMidpointLine(int xStart, int yStart, int maxX, int maxY, QColor);
-
-    // extra helpers
     int  checkRange(int x1, int y1, int x2, int y2);
     bool cohenSutherlandLineClip(int& x0, int& y0, int& x1, int& y1, int maxX, int maxY);
     int  computeOutCode(int x, int y, int maxX, int maxY);
