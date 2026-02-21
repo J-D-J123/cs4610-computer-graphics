@@ -39,6 +39,7 @@ private:
     // required
     void floodFill(int x, int y, const QColor& fill);
     void drawTriangleLines(const Triangle &triangle, const QColor& color);
+    void drawTriangleFlood(const Triangle &triangle, const QColor &color);
 
     // from midpoint line
     void drawTestCases();

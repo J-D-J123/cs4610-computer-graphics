@@ -1,6 +1,8 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 
+#include <stack>
+
 #include <QThread>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -121,11 +123,6 @@ void MainWindow::drawMidpointLine(int x1, int y1, int x2, int y2, QColor color) 
 
             }
         }
-    // } else {
-
-        // qDebug() << "Error: Line Outside Bounds Unable to Draw"
-        //          << "(" << x1 << "," << y1 << ") to (" << x2 << "," << y2 << ")";
-    // }
 }
 
 /**
@@ -266,6 +263,7 @@ bool MainWindow::cohenSutherlandLineClip(int& x0, int& y0, int& x1, int& y1, int
 void MainWindow::drawTriangleLines(const Triangle &triangle, const QColor& color) {
 
     // now make loop to test lots of cases (replace this with a loop)
+
     drawMidpointLine(triangle.v1.x(), triangle.v1.y(),
                      triangle.v2.x(), triangle.v2.y(), color);
 
@@ -288,27 +286,61 @@ void MainWindow::floodFill(int x, int y, const QColor& fill)
     int maxX = ui->pixelWidget->bufferSize().width()  - 1;
     int maxY = ui->pixelWidget->bufferSize().height() - 1;
 
-    // step 1: if node is not Inside, return
-    // "Inside" means: in bounds AND not already filled AND not a border pixel
-    if (x < 0 || x > maxX || y < 0 || y > maxY) {
-        return;
+    // use a stack so the program won't crash
+    // https://www.w3schools.com/cpp/cpp_stacks.asp
+    std::stack<std::pair<int, int>> stack;
+    stack.push({x, y});
+
+    // while the stack is not empty
+    while (!stack.empty()) {
+
+        // put current x, y on the top of the stack and pop it off
+        std::pair<int, int> current = stack.top();
+        stack.pop();
+
+        // save the point(pX, pY) from the current <int, int>
+        int pX = current.first;
+        int pY = current.second;
+
+        // skip if it point (pX, pY) is out of bounds
+        if (pX < 0 || pX > maxX || pY < 0 || pY > maxY) {
+            continue;
+        }
+
+        // also skip if already filled at point P
+        if (ui->pixelWidget->readPixel(pX, pY) != QColor(0, 0, 0, 0)) {
+            continue;
+        }
+
+        // fill the pixel P
+        ui->pixelWidget->writePixel(pX, pY, fill);
+
+        // push other directions to the stack left, right, up & down
+        stack.push(std::make_pair(pX - 1, pY)); // left
+        stack.push(std::make_pair(pX + 1, pY)); // right
+        stack.push(std::make_pair(pX, pY + 1)); // top
+        stack.push(std::make_pair(pX, pY - 1)); // bottom
     }
+}
 
-    QColor current = ui->pixelWidget->readPixel(x, y);
+/**
+ * @brief MainWindow::drawTriangleFlood calls drawTriangleLines with triangle and
+ *          flood fills in the triangle given a point P(seedX, seedY) (inside the triangle)
+ * @param triangle structure that has 3 points with colors for each point
+ * @param color is the color of the triangle border
+ */
+void MainWindow::drawTriangleFlood(const Triangle &triangle, const QColor &color) {
 
-    // not inside if already fill color
-    if (current != QColor(0, 0, 0, 0)) {
-        return;
-    }
+    // draw triangle lines
+    drawTriangleLines(triangle, color);
 
-    // step 2: set the node
-    ui->pixelWidget->writePixel(x, y, fill);
+    // find a point inside the triangle
+    // add up all x1+x2+x3 and divide by 3 for seedX then the same for y but y1 to y3/ 3
+    int seedX ((triangle.v1.x() + triangle.v2.x() + triangle.v3.x()) / 3);
+    int seedY ((triangle.v1.y() + triangle.v2.y() + triangle.v3.y()) / 3);
 
-    // steps 3-6: recurse in 4 directions
-    floodFill(x,     y + 1, fill); // south
-    floodFill(x,     y - 1, fill); // north
-    floodFill(x - 1, y,     fill); // west
-    floodFill(x + 1, y,     fill); // east
+    // flood fill the triangle with point p(seedX, seedY)
+    floodFill(seedX, seedY, color);
 }
 
 /**
@@ -317,65 +349,38 @@ void MainWindow::floodFill(int x, int y, const QColor& fill)
  */
 void MainWindow::drawTestCases() {
 
-    Triangle triangle1{{100, 100},
-                       {500, 200},
-                       {300, 400},
-                       Qt::red,
-                       Qt::green,
-                       Qt::blue};
-
     // THIS FINALLY WORKS!
-    drawTriangleLines(triangle1, Qt::red);
+    // drawTriangleLines(triangle1, Qt::red);
+
+    // Triangle triangle1 {{100, 100},
+    //                            {500, 200},
+    //                            {300, 400},
+    //                            Qt::red,
+    //                            Qt::green,
+    //                            Qt::blue};
+
+    // drawTriangleFlood(triangle1, Qt::blue);
 
     qDebug() << ui->pixelWidget->readPixel(300, 250);
 
     // make the stack so my computer does not crash
     QThread* thread = QThread::create([this](){
-        floodFill(300, 250, Qt::blue);
+
+        // make Triangle struct
+        Triangle triangle1{{100, 100},
+                           {500, 200},
+                           {300, 400},
+                           Qt::red,
+                           Qt::green,
+                           Qt::blue};
+
+        // calll flood fill
+        drawTriangleFlood(triangle1, Qt::blue);
     });
-    thread->setStackSize(64 * 1024 * 1024); // 64MB stack
+
+    // 64MB stack limit
+    thread->setStackSize(64 * 1024 * 1024);
     thread->start();
     thread->wait();
     delete thread;
-
-
-
-
-    // faaaaahhhhhhhh
-    // int maxX = ui->pixelWidget->bufferSize().width()  - 1;
-    // int maxY = ui->pixelWidget->bufferSize().height() - 1;
-
-    // // reset per run
-    // srand(time(0));
-
-    // // make 200 random generated triangles
-    // for(int i = 0; i < 200; i++) {
-
-    //     // choose random x, y chords for vertex 1, 2 and 3
-    //     int x1 = rand() % maxX;
-    //     int x2 = rand() % maxX;
-    //     int x3 = rand() % maxX;
-
-    //     int y1 = rand() % maxY;
-    //     int y2 = rand() % maxY;
-    //     int y3 = rand() % maxY;
-
-    //     Triangle triangle1{{(qreal) x1, (qreal)y1},  // vertex 1
-    //                        {(qreal) x2, (qreal) y2},  // vertex 2
-    //                        {(qreal) x3, (qreal) y3},  // vertex 3
-    //                        Qt::red,     // color 1
-    //                        Qt::green,   // color 2
-    //                        Qt::blue};   // color 3
-
-
-
-    //     // drawMidpointLine(triangle1.v1.x(), triangle1.v1.y(),
-    //     //                  triangle1.v2.x(), triangle1.v2.y(), triangle1.c1);
-
-    //     // drawMidpointLine(triangle1.v2.x(), triangle1.v2.y(),
-    //     //                  triangle1.v3.x(), triangle1.v3.y(), triangle1.c2);
-
-    //     // drawMidpointLine(triangle1.v1.x(), triangle1.v1.y(),
-    //     //                  triangle1.v3.x(), triangle1.v3.y(), triangle1.c3);
 }
-
