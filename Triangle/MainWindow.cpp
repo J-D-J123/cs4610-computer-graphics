@@ -2,7 +2,7 @@
 #include "ui_MainWindow.h"
 
 #include <stack>
-
+#include <QRandomGenerator>
 #include <QThread>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -256,9 +256,9 @@ bool MainWindow::cohenSutherlandLineClip(int& x0, int& y0, int& x1, int& y1, int
 }
 
 /**
- * @brief MainWindow::drawTriangleLines
- * @param triangle
- * @param color
+ * @brief MainWindow::drawTriangleLines draws the triangle lines with the drawMidpointLine method
+ * @param triangle is the triangle struct with three points v1, v2, v3
+ * @param color is the boarder color
  */
 void MainWindow::drawTriangleLines(const Triangle &triangle, const QColor& color) {
 
@@ -344,6 +344,118 @@ void MainWindow::drawTriangleFlood(const Triangle &triangle, const QColor &color
 }
 
 /**
+ * @brief MainWindow::edgeFunction is a helper for the drawTriangleFilled function
+ * @param ax point A x value
+ * @param ay point A y value
+ * @param bx point B x value
+ * @param by point B y value
+ * @param cx point C x value
+ * @param cy point C y value
+ * @returns an integer either positve inside the triangle or negative if outside
+ */
+float MainWindow::edgeFunction(int ax, int ay, int bx, int by, int cx, int cy) {
+
+    // edge function defined by
+    // (a, b, c) = (Xb - Xa)(Yc - Ya) - (Yb - Ya)(Xc - Xa)
+    return (float)(((bx - ax) * (cy - ay)) - ((by - ay) * (cx - ax)));
+}
+
+/**
+ * @brief MainWindow::drawTriangleFilled draws the triangle with colors depending on alpha, beta, gamma
+ * @param triangle is the triangle struct with points x, y, z with colors c1, c2, and c3
+ */
+void MainWindow::drawTriangleFilled(const Triangle &triangle) {
+
+    QColor color1 = triangle.c1;
+    QColor color2 = triangle.c2;
+    QColor color3 = triangle.c3;
+
+    // get the three verticies
+    int x1 = triangle.v1.x();
+    int y1 = triangle.v1.y();
+
+    int x2 = triangle.v2.x();
+    int y2 = triangle.v2.y();
+
+    int x3 = triangle.v3.x();
+    int y3 = triangle.v3.y();
+
+    // make sure that it is in the screen
+    int maxX = ui->pixelWidget->bufferSize().width()  - 1;
+    int maxY = ui->pixelWidget->bufferSize().height() - 1;
+
+    // bounding box to make it faster???
+
+    // find sign area
+    float area = edgeFunction(x1, y1, x2, y2, x3, y3);
+
+    // skip the already made triangle
+    if(area == 0.0f) {
+        return;
+    }
+
+    // loop through the pixel screen
+    for(int y = 0; y <= maxY; y++) {
+        for(int x = 0; x <= maxX; x++) {
+
+            // test other triangles within the main triangle with each edgeFunction output
+            float alpha = edgeFunction(x2, y2, x3, y3, x, y);
+            float beta = edgeFunction(x3, y3, x1, y1, x, y);
+            float gama = edgeFunction(x1, y1, x2, y2, x, y);
+
+            // if all three are non negative pixel is inside the triangle
+            // handles both winding orders either clockwise or counter-clockwise
+            if((alpha >= 0.0f && beta >= 0.0f && gama >= 0.0f) ||
+                (alpha <= 0.0f && beta <= 0.0f && gama <= 0.0f)) {
+
+                // make into barycentirc cords by dividing by area
+                // "Normalize by total area of triangle"
+                alpha = alpha/ area;
+                beta = beta/ area;
+                gama = gama/ area;
+
+                // get value of the color for int (r, g, b)
+                int r = (int)(alpha * color1.red()   + beta * color2.red()   + gama * color3.red());
+                int g = (int)(alpha * color1.green() + beta * color2.green() + gama * color3.green());
+                int b = (int)(alpha * color1.blue()  + beta * color2.blue()  + gama * color3.blue());
+
+                // write to the pixel
+                ui->pixelWidget->writePixel(x, y, QColor(r, g, b));
+            }
+        }
+    }
+}
+
+/**
+ * @brief MainWindow::generateRandomTriangle makes a triangle with random points and random colors
+ * @param min minum point on the display
+ * @param max maximum point on the screen
+ * @returns the triangle to draw with the random numbers
+ */
+Triangle MainWindow::generateRandomTriangle(const QPoint& min, const QPoint& max) {
+
+    // make arrays
+    QPoint vertex[3];
+    QColor color[3];
+
+    // loop through the array and assign values
+    for(int i = 0; i < 3; ++i) {
+
+        // get random number for vertex x1, x2, x,3 and y1, y2, y3
+        vertex[i] = QPoint(QRandomGenerator::global()->bounded(min.x(), max.x()),
+                           QRandomGenerator::global()->bounded(min.y(), max.y()));
+
+        // get random number for colors between 0 to 255
+        color[i] = QColor(QRandomGenerator::global()->bounded(0, 256),
+                          QRandomGenerator::global()->bounded(0, 256),
+                          QRandomGenerator::global()->bounded(0, 256));
+    }
+
+    // return the Triangle struct
+    return Triangle{vertex[0], vertex[1], vertex[2], color[0], color[1], color[2]};
+}
+
+/**
  * drawTestCases() tests mutliple test cases on where to draw triangles
  * @brief MainWindow::drawTestCases
  */
@@ -352,30 +464,33 @@ void MainWindow::drawTestCases() {
     // THIS FINALLY WORKS!
     // drawTriangleLines(triangle1, Qt::red);
 
-    // Triangle triangle1 {{100, 100},
-    //                            {500, 200},
-    //                            {300, 400},
-    //                            Qt::red,
-    //                            Qt::green,
-    //                            Qt::blue};
-
-    // drawTriangleFlood(triangle1, Qt::blue);
-
     qDebug() << ui->pixelWidget->readPixel(300, 250);
 
     // make the stack so my computer does not crash
     QThread* thread = QThread::create([this](){
 
         // make Triangle struct
-        Triangle triangle1{{100, 100},
-                           {500, 200},
-                           {300, 400},
-                           Qt::red,
-                           Qt::green,
-                           Qt::blue};
+        // Triangle triangle1{{100, 100},
+        //                    {500, 200},
+        //                    {300, 400},
+        //                    Qt::red,
+        //                    Qt::green,
+        //                    Qt::blue};
 
         // calll flood fill
-        drawTriangleFlood(triangle1, Qt::blue);
+        // drawTriangleFlood(triangle1, Qt::blue);
+
+        for(int i = 0; i < 200; i++) {
+
+            int maxX = ui->pixelWidget->bufferSize().width();
+            int maxY = ui->pixelWidget->bufferSize().height();
+
+            Triangle triangle = generateRandomTriangle(QPoint(0,0), QPoint(maxX, maxY));
+
+            drawTriangleFilled(triangle);
+        }
+
+        qDebug() << ui->pixelWidget->readPixel(300, 250);
     });
 
     // 64MB stack limit

@@ -40,6 +40,11 @@ private:
     void floodFill(int x, int y, const QColor& fill);
     void drawTriangleLines(const Triangle &triangle, const QColor& color);
     void drawTriangleFlood(const Triangle &triangle, const QColor &color);
+    void drawTriangleFilled(const Triangle &triangle);
+
+    // helper
+    float edgeFunction(int ax, int ay, int bx, int by, int cx, int cy);
+    Triangle generateRandomTriangle(const QPoint& min, const QPoint& max);
 
     // from midpoint line
     void drawTestCases();
