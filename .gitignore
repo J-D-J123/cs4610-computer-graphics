@@ -10,3 +10,6 @@ build/
 *.obj
 *.o
 *.exe
+
+# old assignments/ projects 
+Triangle/
