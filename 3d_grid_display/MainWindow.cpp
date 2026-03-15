@@ -510,13 +510,19 @@ void MainWindow::drawScene()
 {
     // Color-coded world axes
     QVector<Line3D> axes = {
-        {{0, 0, 0}, {10, 0, 0}, Qt::red},
-        {{0, 0, 0}, {0, 10, 0}, Qt::green},
-        {{0, 0, 0}, {0, 0, 10}, Qt::blue}
+        {{0, 0, 0}, {10, 0, 0}, Qt::red},       // x
+        {{0, 0, 0}, {0, 10, 0}, Qt::green},     // y
+        {{0, 0, 0}, {0, 0, 10}, Qt::blue}       // z
     };
 
     // Clear the buffer
     ui->pixelWidget->clear();
+
+    // m_view reset matrix
+    m_view.setToIdentity();
+
+    // Move camera (Question 3)
+    m_view.translate({0,0,-10});
 
     // Compose transformations
     QMatrix4x4 modelViewProjection = m_projection * m_view * m_model;
@@ -528,8 +534,8 @@ void MainWindow::drawScene()
         qDebug() << "v2:" << line.v2;
 
         // Transform vertex pairs
-        auto p1 = modelViewProjection.map(line.v1);
-        auto p2 = modelViewProjection.map(line.v2);
+        auto p1 = modelViewProjection * QVector4D(line.v1, 1);
+        auto p2 = modelViewProjection * QVector4D(line.v2, 1);
 
         qDebug() << "p1:" << p1;
         qDebug() << "p2:" << p2;
