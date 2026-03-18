@@ -522,7 +522,7 @@ void MainWindow::drawScene()
     m_view.setToIdentity();
 
     // Move camera (Question 3)
-    m_view.translate({0,0,-10});
+    m_view.translate({0,0,-20});
 
     // Compose transformations
     QMatrix4x4 modelViewProjection = m_projection * m_view * m_model;
@@ -539,6 +539,13 @@ void MainWindow::drawScene()
 
         qDebug() << "p1:" << p1;
         qDebug() << "p2:" << p2;
+
+        // Perfrom persepctive divide
+        auto ndc1 = p1.toVector3DAffine();
+        auto ndc2 = p2.toVector3DAffine();
+
+        qDebug() << "ndc1:" << ndc1;
+        qDebug() << "ndc2:" << ndc2;
 
         // Viewport transform (NDC -> screen pixels)
         auto s1 = m_viewport.map(p1);
