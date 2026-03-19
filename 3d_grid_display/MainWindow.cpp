@@ -5,11 +5,26 @@
 #include <QRandomGenerator>
 #include <QThread>
 
+#include <QTimer>
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    // zoom in & out - doesnt work rn idk why
+    // ui->actionZoom_In->setShortcut(QKeySequence::ZoomIn);
+    // ui->actionZoom_Out->setShortcut(QKeySequence::ZoomOut);
+    // ui->actionActual_Size->setShortcut(QKeySequence("CTRL+0"));
+
+    // set title
+    setWindowTitle("Assignment 3: Transformations and Projections");
+
+    ui->pixelWidget->clear();
+
+    // Move camera and point it at the origin
+    m_view.lookAt({20, 20, 20}, {0, 0, 0}, {0, 1.0, 0});
 
     int w = ui->pixelWidget->bufferSize().width();
     int h = ui->pixelWidget->bufferSize().height();
@@ -18,10 +33,25 @@ MainWindow::MainWindow(QWidget *parent)
     m_projection.perspective(45.0f, float(w)/h, 0.1f, 1000.0f);
 
     // Set up viewport transformation
-    m_viewport.viewport(0, 0, w, h);
+    // m_viewport.viewport(0, 0, w, h);
+    m_viewport.viewport(0, 0, w - 1, h - 1);
 
     // Correct viewport transformation
     m_viewport.scale(1.0, -1.0, 1.0);
+
+    // Create a timer as child of MainWindow. QObject system will handle deletion
+    QTimer *timer = new QTimer(this);
+
+    // Connect lambda to animate the camera rotation
+    connect(timer, &QTimer::timeout, this, [&]() {
+        // Rotate camera around y axis
+        m_view.rotate(1.0, {0.0, 1.0, 0.0});
+        // Redraw scene
+        drawScene();
+    });
+
+    // Start timer with 30 ms timeout interval
+    timer->start(30);
 
     // Draw the scene
     drawScene();
@@ -515,6 +545,9 @@ void MainWindow::drawLines3D(const QVector<Line3D> &lines, const QMatrix4x4 &mod
         auto p1 = modelViewProjection * QVector4D(line.v1, 1);
         auto p2 = modelViewProjection * QVector4D(line.v2, 1);
 
+        // Clip lines in clip space; skip any that are fully outside view
+        if(!clipHomogeneous(p1, p2)) continue;
+
         //  Perform perspective divide
         auto ndc1 = p1.toVector3DAffine();
         auto ndc2 = p2.toVector3DAffine();
@@ -525,9 +558,29 @@ void MainWindow::drawLines3D(const QVector<Line3D> &lines, const QMatrix4x4 &mod
 
         // Draw lines in 2D to pixel buffer
         drawMidpointLine(w1.x(), w1.y(), w2.x(), w2.y(), line.color);
+
+        //
+        // Temporary for debugging
+        //
+        // if(p1.w() <= 0 || p2.w() <= 0)
+        // {
+        //     qDebug() << "Points w <= 0 clip space:" << p1 << p2;
+        //     qDebug() << "Points w <= 0 ndc space:" << ndc1 << ndc2;
+        //     qDebug() << "Points w <= 0 screen space:" << w1 << w2;
+
+        //     // Draw w <= 0 lines in bright color
+        //     drawMidpointLine(w1.x(), w1.y(), w2.x(), w2.y(), Qt::cyan);
+
+        // }
     }
 }
 
+/**
+ * @brief MainWindow::createGrid creates a grid at the origin with uniform "squares"
+ * @param lineCount how many grid lines there is
+ * @param color the color of the lines
+ * @return the QVector<Line3D>
+ */
 QVector<Line3D> MainWindow::createGrid(int lineCount, const QColor& color)
 {
     QVector<Line3D> result;
@@ -542,6 +595,48 @@ QVector<Line3D> MainWindow::createGrid(int lineCount, const QColor& color)
     }
 
     return result;
+}
+
+/**
+ * @brief clipHomogeneous performs line clipping in clip space to truncate lines that would
+ * extend outside of the view volume
+ * @param p0 first endpoint
+ * @param p1 the second endpoint
+ * @return either false if the line is completely outside the view volume or true if it is inside
+ */
+bool MainWindow::clipHomogeneous(QVector4D& p0, QVector4D& p1) {
+    float t0 = 0.0f;
+    float t1 = 1.0f;
+
+    QVector4D planes[] = {
+        { 1,  0,  0, 1}, {-1,  0,  0, 1},
+        { 0,  1,  0, 1}, { 0, -1,  0, 1},
+        { 0,  0,  1, 1}, { 0,  0, -1, 1}
+    };
+
+    for (const auto& n : planes) {
+        float num = QVector4D::dotProduct(n, p0);
+        float den = QVector4D::dotProduct(n, p1 - p0);
+
+        if (den == 0.0f) {
+            // line parallel – reject only if outside the half‑space
+            if (num < 0.0f) return false;
+        } else {
+            float t = -num / den;
+            if (den > 0)   t0 = qMax(t0, t);   // entering bound
+            else           t1 = qMin(t1, t);   // exiting bound
+        }
+    }
+
+    if(t0 > t1) return false;
+
+    auto p0clip = p0 + t0 * (p1 - p0);
+    auto p1clip = p0 + t1 * (p1 - p0);
+
+    p0 = p0clip;
+    p1 = p1clip;
+
+    return true;
 }
 
 /**
@@ -567,13 +662,28 @@ void MainWindow::drawScene()
     ui->pixelWidget->clear();
 
     // Move camera and point it at the origin
-    m_view.lookAt({20, 20, 20}, {0, 0, 0}, {0, 1.0, 0});
+    // m_view.lookAt({20, 20, 20}, {0, 0, 0}, {0, 1.0, 0});
 
-    QMatrix4x4 axesModelTransform;
+    // call the createGrid()
+    auto grid = createGrid(10, palette().windowText().color());
 
-    axesModelTransform.scale(1, 1, 1);
+    QMatrix4x4 gridModelTransform;
+
+    // Question 12
+    // scale first then translate
+    gridModelTransform.scale(10);
+    gridModelTransform.translate(-10/2, 0, -10/2);
+
+    // Draw the grid
+    drawLines3D(grid, m_projection * m_view * gridModelTransform);
 
     // Draw the axes
+    QMatrix4x4 axesModelTransform;
+
+    // no scale change
+    axesModelTransform.scale(1, 1, 1);
+
+    // draw the axes as lines
     drawLines3D(axes, m_projection * m_view * axesModelTransform);
 
     // m_view reset matrix

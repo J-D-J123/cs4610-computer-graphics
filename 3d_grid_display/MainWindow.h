@@ -52,14 +52,18 @@ private:
     QMatrix4x4 m_projection;
     QMatrix4x4 m_viewport;
 
-    // required
+    // required methods
+    void drawLines3D(const QVector<Line3D> &lines, const QMatrix4x4 &modelViewProjection);
+    QVector<Line3D> createGrid(int lineCount, const QColor& color);
+    bool clipHomogeneous(QVector4D& p0, QVector4D& p1);
+
+    // past methods
     void floodFill(int x, int y, const QColor& fill);
     void drawTriangleLines(const Triangle &triangle, const QColor& color);
     void drawTriangleFlood(const Triangle &triangle, const QColor &color);
     void drawTriangleFilled(const Triangle &triangle);
-    void drawLines3D(const QVector<Line3D> &lines, const QMatrix4x4 &modelViewProjection);
 
-    // helper
+    // helpers
     float edgeFunction(int ax, int ay, int bx, int by, int cx, int cy);
     Triangle generateRandomTriangle(const QPoint& min, const QPoint& max);
 
