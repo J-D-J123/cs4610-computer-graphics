@@ -20,6 +20,9 @@ MainWindow::MainWindow(QWidget *parent)
     // Set up viewport transformation
     m_viewport.viewport(0, 0, w, h);
 
+    // Correct viewport transformation
+    m_viewport.scale(1.0, -1.0, 1.0);
+
     // Draw the scene
     drawScene();
 
@@ -522,7 +525,17 @@ void MainWindow::drawScene()
     m_view.setToIdentity();
 
     // Move camera (Question 3)
-    m_view.translate({0,0,-20});
+    // m_view.translate({0,0,-20});
+
+    // Question 9
+    // Translate camera so z-axis is visible
+    // m_view.translate({4.0, 4.0, 0.0});
+
+    // m_view.translate(-4.0, -4.0, 0.0);
+
+     m_view.lookAt({4, 4, 20}, {4, 4, 0}, {0, 1.0, 0});
+
+    qDebug() << "Camera location:" << m_view.inverted().map({0, 0, 0});
 
     // Compose transformations
     QMatrix4x4 modelViewProjection = m_projection * m_view * m_model;
