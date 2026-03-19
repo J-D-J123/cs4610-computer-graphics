@@ -506,23 +506,78 @@ void MainWindow::drawTestCases() {
     delete thread;
 }
 
+void MainWindow::drawLines3D(const QVector<Line3D> &lines, const QMatrix4x4 &modelViewProjection) {
+
+    // copied from Question 11
+    // For each axis line
+    for(const auto& line : lines) {
+        // Transform vertex pairs to clip space
+        auto p1 = modelViewProjection * QVector4D(line.v1, 1);
+        auto p2 = modelViewProjection * QVector4D(line.v2, 1);
+
+        //  Perform perspective divide
+        auto ndc1 = p1.toVector3DAffine();
+        auto ndc2 = p2.toVector3DAffine();
+
+        // Convert ndc points to window coordinates
+        auto w1 = m_viewport.map(ndc1);
+        auto w2 = m_viewport.map(ndc2);
+
+        // Draw lines in 2D to pixel buffer
+        drawMidpointLine(w1.x(), w1.y(), w2.x(), w2.y(), line.color);
+    }
+}
+
+QVector<Line3D> MainWindow::createGrid(int lineCount, const QColor& color)
+{
+    QVector<Line3D> result;
+
+    float length = lineCount;
+    for(int i = 0; i <= lineCount; ++i)
+    {
+        float offset = i;
+
+        result.push_back({{offset, 0, 0}, {offset, 0, length}, color});
+        result.push_back({{0, 0, offset}, {length, 0, offset}, color});
+    }
+
+    return result;
+}
+
 /**
  * @brief MainWindow::drawScene draws the beginning of the scene
  */
 void MainWindow::drawScene()
 {
     // Color-coded world axes
+    // QVector<Line3D> axes = {
+    //     {{0, 0, 0}, {10, 0, 0}, Qt::red},       // x
+    //     {{0, 0, 0}, {0, 10, 0}, Qt::green},     // y
+    //     {{0, 0, 0}, {0, 0, 10}, Qt::blue}       // z
+    // };
+
+    // Color-coded unit length world axes
     QVector<Line3D> axes = {
-        {{0, 0, 0}, {10, 0, 0}, Qt::red},       // x
-        {{0, 0, 0}, {0, 10, 0}, Qt::green},     // y
-        {{0, 0, 0}, {0, 0, 10}, Qt::blue}       // z
+        {{0, 0, 0}, {1, 0, 0}, Qt::red},
+        {{0, 0, 0}, {0, 1, 0}, Qt::green},
+        {{0, 0, 0}, {0, 0, 1}, Qt::blue}
     };
 
     // Clear the buffer
     ui->pixelWidget->clear();
 
+    // Move camera and point it at the origin
+    m_view.lookAt({20, 20, 20}, {0, 0, 0}, {0, 1.0, 0});
+
+    QMatrix4x4 axesModelTransform;
+
+    axesModelTransform.scale(1, 1, 1);
+
+    // Draw the axes
+    drawLines3D(axes, m_projection * m_view * axesModelTransform);
+
     // m_view reset matrix
-    m_view.setToIdentity();
+    // m_view.setToIdentity();
 
     // Move camera (Question 3)
     // m_view.translate({0,0,-20});
@@ -533,53 +588,53 @@ void MainWindow::drawScene()
 
     // m_view.translate(-4.0, -4.0, 0.0);
 
-     m_view.lookAt({4, 4, 20}, {4, 4, 0}, {0, 1.0, 0});
+    // m_view.lookAt({4, 4, 20}, {4, 4, 0}, {0, 1.0, 0});
 
-    qDebug() << "Camera location:" << m_view.inverted().map({0, 0, 0});
+    // qDebug() << "Camera location:" << m_view.inverted().map({0, 0, 0});
 
-    // Compose transformations
-    QMatrix4x4 modelViewProjection = m_projection * m_view * m_model;
+    // // Compose transformations
+    // QMatrix4x4 modelViewProjection = m_projection * m_view * m_model;
 
-    // For each axis line
-    for(const auto& line : axes)
-    {
-        qDebug() << "v1:" << line.v1;
-        qDebug() << "v2:" << line.v2;
+    // // For each axis line
+    // for(const auto& line : axes)
+    // {
+    //     qDebug() << "v1:" << line.v1;
+    //     qDebug() << "v2:" << line.v2;
 
-        // Transform vertex pairs
-        auto p1 = modelViewProjection * QVector4D(line.v1, 1);
-        auto p2 = modelViewProjection * QVector4D(line.v2, 1);
+    //     // Transform vertex pairs
+    //     auto p1 = modelViewProjection * QVector4D(line.v1, 1);
+    //     auto p2 = modelViewProjection * QVector4D(line.v2, 1);
 
-        qDebug() << "p1:" << p1;
-        qDebug() << "p2:" << p2;
+    //     qDebug() << "p1:" << p1;
+    //     qDebug() << "p2:" << p2;
 
-        // Question 5
-        // Perfrom persepctive divide
-        auto ndc1 = p1.toVector3DAffine();
-        auto ndc2 = p2.toVector3DAffine();
+    //     // Question 5
+    //     // Perfrom persepctive divide
+    //     auto ndc1 = p1.toVector3DAffine();
+    //     auto ndc2 = p2.toVector3DAffine();
 
-        qDebug() << "ndc1:" << ndc1;
-        qDebug() << "ndc2:" << ndc2;
+    //     qDebug() << "ndc1:" << ndc1;
+    //     qDebug() << "ndc2:" << ndc2;
 
-        // Question 6
-        // Convert ndc points to window coordinates
-        auto w1 = m_viewport.map(ndc1);
-        auto w2 = m_viewport.map(ndc2);
+    //     // Question 6
+    //     // Convert ndc points to window coordinates
+    //     auto w1 = m_viewport.map(ndc1);
+    //     auto w2 = m_viewport.map(ndc2);
 
-        qDebug() << "w1:" << w1;
-        qDebug() << "w2:" << w2;
+    //     qDebug() << "w1:" << w1;
+    //     qDebug() << "w2:" << w2;
 
-        // Draw lines in 2D to pixel buffer
-        drawMidpointLine(w1.x(), w1.y(), w2.x(), w2.y(), line.color);
+    //     // Draw lines in 2D to pixel buffer
+    //     drawMidpointLine(w1.x(), w1.y(), w2.x(), w2.y(), line.color);
 
-        // // Viewport transform (NDC -> screen pixels)
-        // auto s1 = m_viewport.map(p1);
-        // auto s2 = m_viewport.map(p2);
+    //     // // Viewport transform (NDC -> screen pixels)
+    //     // auto s1 = m_viewport.map(p1);
+    //     // auto s2 = m_viewport.map(p2);
 
-        // Draw lines in 2D to pixel buffer
-        // drawMidpointLine((int)s1.x(), (int)s1.y(),
-        //                  (int)s2.x(), (int)s2.y(), line.color);
-    }
+    //     // Draw lines in 2D to pixel buffer
+    //     // drawMidpointLine((int)s1.x(), (int)s1.y(),
+    //     //                  (int)s2.x(), (int)s2.y(), line.color);
+    // }
 
     // Trigger widget redraw
     ui->pixelWidget->update();

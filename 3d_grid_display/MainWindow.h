@@ -57,6 +57,7 @@ private:
     void drawTriangleLines(const Triangle &triangle, const QColor& color);
     void drawTriangleFlood(const Triangle &triangle, const QColor &color);
     void drawTriangleFilled(const Triangle &triangle);
+    void drawLines3D(const QVector<Line3D> &lines, const QMatrix4x4 &modelViewProjection);
 
     // helper
     float edgeFunction(int ax, int ay, int bx, int by, int cx, int cy);
