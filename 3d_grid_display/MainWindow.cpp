@@ -540,6 +540,7 @@ void MainWindow::drawScene()
         qDebug() << "p1:" << p1;
         qDebug() << "p2:" << p2;
 
+        // Question 5
         // Perfrom persepctive divide
         auto ndc1 = p1.toVector3DAffine();
         auto ndc2 = p2.toVector3DAffine();
@@ -547,13 +548,24 @@ void MainWindow::drawScene()
         qDebug() << "ndc1:" << ndc1;
         qDebug() << "ndc2:" << ndc2;
 
-        // Viewport transform (NDC -> screen pixels)
-        auto s1 = m_viewport.map(p1);
-        auto s2 = m_viewport.map(p2);
+        // Question 6
+        // Convert ndc points to window coordinates
+        auto w1 = m_viewport.map(ndc1);
+        auto w2 = m_viewport.map(ndc2);
+
+        qDebug() << "w1:" << w1;
+        qDebug() << "w2:" << w2;
 
         // Draw lines in 2D to pixel buffer
-        drawMidpointLine((int)s1.x(), (int)s1.y(),
-                         (int)s2.x(), (int)s2.y(), line.color);
+        drawMidpointLine(w1.x(), w1.y(), w2.x(), w2.y(), line.color);
+
+        // // Viewport transform (NDC -> screen pixels)
+        // auto s1 = m_viewport.map(p1);
+        // auto s2 = m_viewport.map(p2);
+
+        // Draw lines in 2D to pixel buffer
+        // drawMidpointLine((int)s1.x(), (int)s1.y(),
+        //                  (int)s2.x(), (int)s2.y(), line.color);
     }
 
     // Trigger widget redraw
