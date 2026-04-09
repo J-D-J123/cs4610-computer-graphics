@@ -9,6 +9,9 @@ ViewWidget::ViewWidget(QWidget *parent, Qt::WindowFlags f)
 void ViewWidget::initializeGL()
 {
   initializeOpenGLFunctions();
+
+  qDebug("OpenGL version %d.%d in ViewWidget constructor.",
+    format().majorVersion(), format().minorVersion());
 }
 
 void ViewWidget::paintGL()

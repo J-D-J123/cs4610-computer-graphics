@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "ViewWidget.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -19,5 +20,6 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    ViewWidget *m_viewWidget; // common practice to name the member variables with m to distinguish from local variables
 };
 #endif // MAINWINDOW_H
