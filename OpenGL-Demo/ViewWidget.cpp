@@ -1,3 +1,13 @@
+/**
+ * Name:        Joseph Johnson
+ * Date:        04/16/2026
+ * Desc:        Covering hardware accelearation of OpenGL
+ *                  and using the object-oriented interface by Qt.
+ *                  by making triangles and rotaing and scaling them
+ * File:        ViewWidget.cpp
+ *
+ * */
+
 #include "ViewWidget.h"
 #include <QDebug>
 
