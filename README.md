@@ -6,7 +6,7 @@ Projects and assignments covering computer graphics concetps, including line dra
 -  Coordinate system transformations
 - 2D geometric transformations (translation, rotation, scaling)
 - Drawing triangles and lines
-- Depth Buffer (z-buffer)
+- Depth Buffer (z-buffer) & clipping 
 - Rasterization 
 
 ## Technologies 
